@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="/static/style.css">
+    <title>Mood Tracker</title>
+</head>
+
+<body style="background-color: {{ background_color }}; transition: 0.5s;">
+
+<div class="card">
+    <h2>Mood Tracker</h2>
+
+    <form method="post">
+        <select name="emotion">
+            <option>Happy</option>
+            <option>Excited</option>
+            <option>Grateful</option>
+            <option>Calm</option>
+            <option>Proud</option>
+            <option>Loved</option>
+            <option>Motivated</option>
+            <option>Relaxed</option>
+            <option>Okay</option>
+            <option>Tired</option>
+            <option>Bored</option>
+            <option>Confused</option>
+            <option>Sad</option>
+            <option>Angry</option>
+            <option>Stressed</option>
+            <option>Anxious</option>
+            <option>Lonely</option>
+            <option>Frustrated</option>
+            <option>Overwhelmed</option>
+            <option>Disappointed</option>
+        </select>
+
+        <select name="intensity">
+            <option value="1">Very Low</option>
+            <option value="2">Low</option>
+            <option value="3">Medium</option>
+            <option value="4">High</option>
+            <option value="5">Very High</option>
+        </select>
+
+        <input type="text" name="note" placeholder="Optional note">
+        <button type="submit">Save</button>
+    </form>
+
+    {% if low_streak_warning %}
+    <div class="warning">
+        {{ low_streak_warning }}
+    </div>
+    {% endif %}
+
+    <h3>Most Frequent Emotion:</h3>
+    <p>{{ most_common }}</p>
+
+    <h3>History</h3>
+    <ul>
+        {% for mood in moods %}
+        <li>
+            {{ mood.date.strftime('%Y-%m-%d') }} -
+            {{ mood.emotion }} ({{ mood.intensity }}) -
+            {{ mood.note }}
+        </li>
+        {% endfor %}
+    </ul>
+
+    <a href="/logout">Logout</a>
+</div>
+
+</body>
+</html>
+
