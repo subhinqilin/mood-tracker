@@ -59,9 +59,8 @@ emotion_colors = {
 
 @app.route("/")
 def home():
-    if "user_id" in session:
-        return redirect("/dashboard")
     return redirect("/login")
+
 
 
 # ======================
