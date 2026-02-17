@@ -1,18 +1,26 @@
 from flask import Flask, render_template, request, redirect, session
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from collections import Counter
+import json
 
 app = Flask(__name__)
 app.secret_key = "secretkey"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mood.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///mood.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
+
+# ======================
+# Models
+# ======================
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100))
+
 
 class Mood(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -22,54 +30,32 @@ class Mood(db.Model):
     date = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer)
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        user = User.query.filter_by(
-            username=request.form["username"],
-            password=request.form["password"]
-        ).first()
-        if user:
-            session["user_id"] = user.id
-            return redirect("/dashboard")
-    return render_template("login.html")
+
+class Feedback(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.String(500))
+    date = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer)
 
 
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        user = User(
-            username=request.form["username"],
-            password=request.form["password"]
-        )
-        db.session.add(user)
-        db.session.commit()
-        return redirect("/login")
-    return render_template("register.html")
+# ======================
+# Emotion Colors
+# ======================
 
-# 情绪 → 浅色背景映射
 emotion_colors = {
     "Happy": "#FFF9D6",
-    "Excited": "#FFF9D6",
-    "Calm": "#E6F2FF",
-    "Relaxed": "#E6F2FF",
-    "Grateful": "#FFEFD8",
-    "Motivated": "#FFEFD8",
-    "Proud": "#FFE6F0",
-    "Loved": "#FFE6F0",
     "Sad": "#EEF2F7",
     "Lonely": "#EEF2F7",
-    "Angry": "#FFE5E5",
-    "Stressed": "#F3E8FF",
     "Overwhelmed": "#F3E8FF",
     "Anxious": "#E6FAF7",
-    "Tired": "#F4F4F4",
-    "Bored": "#F4F4F4",
-    "Confused": "#F4F4F4",
-    "Okay": "#F4F4F4",
-    "Frustrated": "#FFE5E5",
-    "Disappointed": "#EEF2F7"
+    "Disappointed": "#EEF2F7",
+    "Stressed": "#F3E8FF",
+    "Tired": "#F4F4F4"
 }
+
+# ======================
+# Home
+# ======================
 
 @app.route("/")
 def home():
@@ -77,56 +63,70 @@ def home():
         return redirect("/dashboard")
     return redirect("/login")
 
+
+# ======================
+# Dashboard
+# ======================
+
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
+
     if "user_id" not in session:
         return redirect("/login")
 
-    # 保存新情绪
+    # 提交心情
     if request.method == "POST":
-        new_mood = Mood(
-            emotion=request.form["emotion"],
-            intensity=int(request.form["intensity"]),
-            note=request.form["note"],
-            user_id=session["user_id"]
-        )
-        db.session.add(new_mood)
-        db.session.commit()
 
-    # 读取当前用户的所有记录（按时间倒序）
+        if "emotion" in request.form:
+            mood = Mood(
+                emotion=request.form["emotion"],
+                intensity=int(request.form["intensity"]),
+                note=request.form["note"],
+                user_id=session["user_id"]
+            )
+            db.session.add(mood)
+            db.session.commit()
+
+        if "feedback" in request.form:
+            fb = Feedback(
+                content=request.form["feedback"],
+                user_id=session["user_id"]
+            )
+            db.session.add(fb)
+            db.session.commit()
+
     moods = Mood.query.filter_by(
         user_id=session["user_id"]
     ).order_by(Mood.date.desc()).all()
 
-    # ===== 图表数据 =====
-    from collections import Counter
-
-    emotion_counter = Counter([m.emotion for m in moods])
-    emotion_labels = list(emotion_counter.keys())
-    emotion_counts = list(emotion_counter.values())
-
-    # 折线图用时间正序
-    dates = [m.date.strftime("%m-%d") for m in reversed(moods)]
-    intensities = [m.intensity for m in reversed(moods)]
-
-    # ===== 默认值 =====
+    # 默认值
     most_common = None
-    advice = "Keep tracking your emotions."
     background_color = "#f2f4f8"
     low_streak_warning = None
+    emotion_labels = []
+    emotion_counts = []
+    dates = []
+    intensities = []
 
     if moods:
-        # 最常见情绪
-        most_common = max(emotion_counter, key=emotion_counter.get)
 
-        # 背景颜色（取最新一条）
+        # 统计
+        counter = Counter([m.emotion for m in moods])
+        most_common = counter.most_common(1)[0][0]
+
+        emotion_labels = list(counter.keys())
+        emotion_counts = list(counter.values())
+
+        dates = [m.date.strftime("%m-%d") for m in reversed(moods)]
+        intensities = [m.intensity for m in reversed(moods)]
+
+        # 背景
         background_color = emotion_colors.get(
-            moods[0].emotion,
-            "#f2f4f8"
+            moods[0].emotion, "#f2f4f8"
         )
 
-        # 连续低落检测
-        negative_emotions = [
+        # 连续低落
+        negative = [
             "Sad", "Lonely", "Overwhelmed",
             "Anxious", "Disappointed",
             "Stressed", "Tired"
@@ -134,7 +134,7 @@ def dashboard():
 
         streak = 0
         for m in moods:
-            if m.emotion in negative_emotions:
+            if m.emotion in negative:
                 streak += 1
             else:
                 break
@@ -142,31 +142,68 @@ def dashboard():
         if streak >= 3:
             low_streak_warning = (
                 "You've recorded negative emotions "
-                "3 times in a row. Consider resting, "
-                "going outside, or talking to someone you trust."
+                "3 times in a row. Consider resting "
+                "or talking to someone you trust."
             )
 
     return render_template(
         "dashboard.html",
         moods=moods,
         most_common=most_common,
-        advice=advice,
         background_color=background_color,
         low_streak_warning=low_streak_warning,
-        emotion_labels=emotion_labels,
-        emotion_counts=emotion_counts,
-        dates=dates,
-        intensities=intensities
+        emotion_labels=json.dumps(emotion_labels),
+        emotion_counts=json.dumps(emotion_counts),
+        dates=json.dumps(dates),
+        intensities=json.dumps(intensities)
     )
 
+
+# ======================
+# Admin
+# ======================
+
+@app.route("/admin")
+def admin():
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    user = User.query.get(session["user_id"])
+
+    if user.username != "subhinqilin":
+        return "Access Denied"
+
+    moods = db.session.query(Mood, User).join(
+        User, Mood.user_id == User.id
+    ).order_by(Mood.date.desc()).all()
+
+    feedbacks = db.session.query(Feedback, User).join(
+        User, Feedback.user_id == User.id
+    ).order_by(Feedback.date.desc()).all()
+
+    return render_template(
+        "admin.html",
+        moods=moods,
+        feedbacks=feedbacks
+    )
+
+
+# ======================
+# Logout
+# ======================
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/login")
 
+
+# ======================
+# Run
+# ======================
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(debug=True, host="0.0.0.0", port=5001)
-
+    app.run(debug=True, port=5001)

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel</title>
+</head>
+<body>
+
+<h1>Admin Dashboard</h1>
+
+<h2>All Mood Records</h2>
+<ul>
+{% for mood, user in moods %}
+    <li>
+        <strong>{{ user.username }}</strong> -
+        {{ mood.emotion }} ({{ mood.intensity }})
+        - {{ mood.date.strftime('%Y-%m-%d %H:%M') }}
+    </li>
+{% endfor %}
+</ul>
+
+<hr>
+
+<h2>All Feedback</h2>
+<ul>
+{% for feedback, user in feedbacks %}
+    <li>
+        <strong>{{ user.username }}</strong>:
+        {{ feedback.content }}
+        ({{ feedback.date.strftime('%Y-%m-%d %H:%M') }})
+    </li>
+{% endfor %}
+</ul>
+
+<br>
+<a href="/dashboard">Back</a>
+
+</body>
+</html>
+
