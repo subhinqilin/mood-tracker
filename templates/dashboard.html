@@ -66,6 +66,45 @@
         {% endfor %}
     </ul>
 
+<canvas id="pieChart"></canvas>
+<canvas id="lineChart"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const emotions = {{ emotion_labels | tojson }};
+const counts = {{ emotion_counts | tojson }};
+const dates = {{ dates | tojson }};
+const intensities = {{ intensities | tojson }};
+
+if (emotions.length > 0) {
+
+    new Chart(document.getElementById("pieChart"), {
+        type: "pie",
+        data: {
+            labels: emotions,
+            datasets: [{
+                data: counts
+            }]
+        }
+    });
+
+    new Chart(document.getElementById("lineChart"), {
+        type: "line",
+        data: {
+            labels: dates,
+            datasets: [{
+                label: "Mood Intensity",
+                data: intensities
+            }]
+        }
+    });
+
+}
+</script>
+
+
+
     <a href="/logout">Logout</a>
 </div>
 

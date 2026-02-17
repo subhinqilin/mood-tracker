@@ -92,43 +92,59 @@ def dashboard():
         db.session.add(new_mood)
         db.session.commit()
 
-    moods = Mood.query.filter_by(user_id=session["user_id"]).order_by(Mood.date.desc()).all()
+moods = Mood.query.filter_by(...).all()
 
-    most_common = None
-    advice = "Keep tracking your emotions."
-    background_color = "#f2f4f8"
-    low_streak_warning = None
+from collections import Counter
+emotion_counter = Counter([m.emotion for m in moods])
+emotion_labels = list(emotion_counter.keys())
+emotion_counts = list(emotion_counter.values())
 
-    if moods:
-        # 最常见情绪
-        emotion_count = {}
-        for m in moods:
-            emotion_count[m.emotion] = emotion_count.get(m.emotion, 0) + 1
-        most_common = max(emotion_count, key=emotion_count.get)
+dates = [m.date.strftime("%m-%d") for m in reversed(moods)]
+intensities = [m.intensity for m in reversed(moods)]
 
-        # 背景颜色
-        background_color = emotion_colors.get(moods[0].emotion, "#f2f4f8")
+most_common = None
+advice = "Keep tracking your emotions."
+background_color = "#f2f4f8"
+low_streak_warning = None
 
-        # 连续低落检测
-        negative_emotions = ["Sad", "Lonely", "Overwhelmed", "Anxious", "Disappointed"]
-        streak = 0
-        for m in moods:
-            if m.emotion in negative_emotions:
-                streak += 1
-            else:
-                break
+if moods:
 
-        if streak >= 3:
-            low_streak_warning = "You've recorded negative emotions 3 times in a row. Consider resting, going outside, or talking to someone you trust."
+    most_common = max(emotion_counter, key=emotion_counter.get)
+
+    background_color = emotion_colors.get(moods[0].emotion, "#f2f4f8")
+
+    negative_emotions = [
+        "Sad", "Lonely", "Overwhelmed",
+        "Anxious", "Disappointed",
+        "Stressed", "Tired"
+    ]
+
+    streak = 0
+    for m in moods:
+        if m.emotion in negative_emotions:
+            streak += 1
+        else:
+            break
+
+    if streak >= 3:
+        low_streak_warning = "You've recorded negative emotions 3 times in a row."
 
     return render_template(
-        "dashboard.html",
-        moods=moods,
-        most_common=most_common,
-        advice=advice,
-        background_color=background_color,
-        low_streak_warning=low_streak_warning
+    "dashboard.html",
+    moods=moods,
+    most_common=most_common,
+    advice=advice,
+    background_color=background_color,
+    low_streak_warning=low_streak_warning,
+    emotion_labels=emotion_labels,
+    emotion_counts=emotion_counts,
+    dates=dates,
+    intensities=intensities
+)
+
+        
     )
+
 
 @app.route("/logout")
 def logout():
