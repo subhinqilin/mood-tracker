@@ -1,18 +1,86 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>Login - Mood Tracker</title>
     <link rel="stylesheet" href="/static/style.css">
-    <title>Login</title>
 </head>
+
 <body>
+
 <div class="card">
-    <h2>Login</h2>
-    <form method="post">
+    <h2>Welcome Back</h2>
+
+    <form method="post" onsubmit="return checkAgreement()">
+
         <input type="text" name="username" placeholder="Username" required>
         <input type="password" name="password" placeholder="Password" required>
-        <button type="submit">Login</button>
+
+        <!-- 展开按钮 -->
+        <button type="button" onclick="toggleNotice()" 
+        style="margin-top:10px; background:#f0f0f0; color:#333;">
+            Read User Notice
+        </button>
+
+        <!-- 可展开文本框 -->
+        <div id="notice-box" style="
+            display:none;
+            margin-top:10px;
+            max-height:150px;
+            overflow-y:auto;
+            font-size:12px;
+            text-align:left;
+            background:#f9f9f9;
+            padding:12px;
+            border-radius:12px;
+            border:1px solid #eee;
+        ">
+
+        <strong>User Notice</strong><br><br>
+
+        Welcome to the Mood Tracker website. This platform is designed to help users record, reflect, and better understand their emotional experiences over time. By using this website, you agree to use it responsibly and respectfully.
+
+        The information recorded on this site is intended for personal reflection purposes only. This website does not provide medical or professional mental health advice. If you are experiencing serious emotional distress, please seek help from a qualified professional or trusted adult.
+
+        We use basic cookies to ensure the website functions properly, such as keeping users logged in and remembering preferences. We do not sell or share your data for advertising purposes.
+
+        By continuing to use this website, you acknowledge that you understand its purpose and agree to use it responsibly.
+
+        </div>
+
+        <!-- 勾选框 -->
+        <div style="margin-top:12px; font-size:13px; text-align:left;">
+            <input type="checkbox" id="agreeBox">
+            <label for="agreeBox">
+                I have read and agree to the User Notice
+            </label>
+        </div>
+
+        <button type="submit" style="margin-top:15px;">
+            Login
+        </button>
     </form>
-    <a href="/register">Register</a>
+
+    <div style="margin-top:15px;">
+        <a href="/register">Create an account</a>
+    </div>
+
 </div>
+
+<script>
+function toggleNotice() {
+    const box = document.getElementById("notice-box");
+    box.style.display = box.style.display === "none" ? "block" : "none";
+}
+
+function checkAgreement() {
+    const checkbox = document.getElementById("agreeBox");
+    if (!checkbox.checked) {
+        alert("You must agree to the User Notice before logging in.");
+        return false;
+    }
+    return true;
+}
+</script>
+
 </body>
 </html>
